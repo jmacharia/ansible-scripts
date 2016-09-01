@@ -1,0 +1,59 @@
+---
+# This is a USSD application setup containing the following:
+#  - base setup, 
+#  - the core application, 
+#  - monitoring tools,
+#  - assistance packages.
+# The app will run on any RHEL 5.5 and above server.
+
+#-hosts: app-servers
+-hosts: local
+ remote_user: ussdapp
+ become: yes
+ become_method: sudo
+ gather_facts: False
+
+ var:
+   app_dir:
+     - { path: /info-hub/, state: directory, mode: 0755 }
+
+ tasks:
+     - name: install application base packages and assistance packages
+       rpm: state=present name={{ item }}
+       with_items:
+          - twistd
+          - postgres
+          - memcached
+          - python-memcached
+          - zope-interface
+          - rabbitmq-server
+          - monit
+          - carbon
+          - suds
+          - kannel
+          - pika
+       register: appsInstalled
+       ignore_errors: True
+       notify:
+           - Restart appliction base packages
+
+     - name: Install the application
+       file: dest=/ussdapp/ mode=775 state=directory owner=ussdapp group=ussdapp
+       git: "git clone git@bitbucket.org:teleteq/info-hub.git"
+ 
+ handlers:
+     - name: Restart ussd base packages
+       service: name={{ item }} state=restart
+       when: appsInstalled|success
+
+     - name: Restart ussd application
+       service: name=postgres state=restarted
+     - name: Restart memcached
+       service: name=memcached state=restarted
+     - 
+ 
+
+
+
+
+...
